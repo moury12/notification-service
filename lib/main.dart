@@ -2,11 +2,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:notification_service/notification.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
-void main()async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
+  tz.initializeTimeZones();
   await Firebase.initializeApp();
   NotificationService.initNotification();
   await FirebaseMessaging.instance.getInitialMessage();
@@ -16,10 +17,11 @@ void main()async {
   });
   runApp(const MyApp());
 }
+
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  NotificationService.showLocalNotification(
 
+  NotificationService.showLocalNotification(
     message.notification?.title ?? "No title",
     message.notification?.body ?? "No body",
     message.data['payload'] ?? 'Default payload',
@@ -59,45 +61,63 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key,});
-
-
-
-
+  const MyHomePage({
+    super.key,
+  });
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
-
+  TimeOfDay? selectedTime;
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text('notification'),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-
+            ElevatedButton(
+                onPressed: () {
+                  NotificationService.showLocalNotification(
+                      'title', 'body', 'payload');
+                },
+                child: Text('send notification')),
+            ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      content: Column(mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ElevatedButton(
+                              onPressed: () async{
+TimeOfDay? pickedTime = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+if(pickedTime!=null){
+  setState(() {
+    selectedTime =pickedTime;
+  });
+  final scheduledTime = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+    selectedTime!.hour,
+    selectedTime!.minute,
+  );
+  NotificationService.showScheduleNotification(scheduledTime);
+}
+                              }, child: Text('select time'))
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                child: Text('schedule notification')),
           ],
         ),
       ),
@@ -109,7 +129,6 @@ class _MyHomePageState extends State<MyHomePage> {
         },
         label: Text('get token'),
         tooltip: 'Increment',
-
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
