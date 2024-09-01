@@ -1,7 +1,12 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:notification_service/download_content.dart';
 import 'package:notification_service/notification.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
 void main() async {
@@ -37,21 +42,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
@@ -71,6 +61,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   TimeOfDay? selectedTime;
+  DateTime? scheduleTime;
+
+  TextEditingController numberOfDaysController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,31 +86,53 @@ class _MyHomePageState extends State<MyHomePage> {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      content: Column(mainAxisSize: MainAxisSize.min,
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          TextField(
+                            controller: numberOfDaysController,
+                            decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Enter number of days'),
+                          ),
                           ElevatedButton(
-                              onPressed: () async{
-TimeOfDay? pickedTime = await showTimePicker(context: context, initialTime: TimeOfDay.now());
-if(pickedTime!=null){
-  setState(() {
-    selectedTime =pickedTime;
-  });
-  final scheduledTime = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
-    selectedTime!.hour,
-    selectedTime!.minute,
-  );
-  NotificationService.showScheduleNotification(scheduledTime);
-}
-                              }, child: Text('select time'))
+                              onPressed: () async {
+                                TimeOfDay? pickedTime = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay.now());
+                                if (pickedTime != null) {
+                                  setState(() {
+                                    selectedTime = pickedTime;
+                                  });
+                                  scheduleTime = DateTime(
+                                    DateTime.now().year,
+                                    DateTime.now().month,
+                                    DateTime.now().day,
+                                    selectedTime!.hour,
+                                    selectedTime!.minute,
+                                  );
+                                }
+                              },
+                              child: Text('select time')),
+                          ElevatedButton(
+                              onPressed: () {
+                                NotificationService.showScheduleNotification(
+                                    scheduleTime!,
+                                    int.parse(numberOfDaysController.text));
+                                Navigator.pop(context);
+                              },
+                              child: Text('Set notification'))
                         ],
                       ),
                     ),
                   );
                 },
                 child: Text('schedule notification')),
+            ElevatedButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => DownloadContent(),));
+                },
+                child: Text('download notification'))
           ],
         ),
       ),
@@ -132,4 +147,7 @@ if(pickedTime!=null){
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
 }
+
+
