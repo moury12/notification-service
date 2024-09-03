@@ -1,6 +1,8 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:timezone/timezone.dart' as tz;
+
 // import 'package:timezone/data/latest.dart' as tz;
 class NotificationService {
   static FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -20,10 +22,10 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
+      // onDidReceiveBackgroundNotificationResponse: ,
       onDidReceiveNotificationResponse: (details) async {
         if (details.payload != null && details.payload!.isNotEmpty) {
-await OpenFilex.open(details.payload!);
-
+          await OpenFilex.open(details.payload!);
         }
       },
     );
@@ -31,6 +33,7 @@ await OpenFilex.open(details.payload!);
 
   static Future<void> showScheduleNotification(
       DateTime scheduleTime, int? numberOfDays) async {
+    const sound = 'notification_sound';
     tz.TZDateTime scheduledTime = tz.TZDateTime.from(scheduleTime, tz.local);
     if (scheduledTime.isBefore(tz.TZDateTime.now(tz.local))) {
       scheduledTime = scheduledTime.add(Duration(days: 1));
@@ -50,6 +53,7 @@ await OpenFilex.open(details.payload!);
                     // playSound: true,
                     priority: Priority.max,
                     autoCancel: true,
+                    sound: RawResourceAndroidNotificationSound(sound),
                     fullScreenIntent: false,
                     enableVibration: true,
                     visibility: NotificationVisibility.public)),
@@ -99,25 +103,35 @@ await OpenFilex.open(details.payload!);
         50,
         progress < 100 ? 'Downloading File $progress%' : 'Download Complete',
         progress < 100 ? 'Download Progress' : 'Tap to open file',
-        payload: progress < 100 ?null: filePath,
+        payload: progress < 100 ? null : filePath,
         notificationDetails);
   }
 
-  static showLocalNotification(String title, String body, String payload) {
-    const androidNotificationDetail = AndroidNotificationDetails('1', 'general',
+  static showLocalNotification(
+      String title, String body, String payload) async {
+    final ByteData imageData = await rootBundle.load('assets/notification.jpg');
+    final Uint8List bytes = imageData.buffer.asUint8List();
+    final androidNotificationDetail = AndroidNotificationDetails('1', 'general',
         priority: Priority.high,
         autoCancel: true,
         fullScreenIntent: false,
         enableVibration: true,
         importance: Importance.high,
         playSound: true,
+        styleInformation: BigPictureStyleInformation(
+            ByteArrayAndroidBitmap(bytes),
+            largeIcon: ByteArrayAndroidBitmap(bytes)),
         visibility: NotificationVisibility.public);
-    const iosNotificatonDetail = DarwinNotificationDetails();
-    const notificationDetails = NotificationDetails(
+    final iosNotificatonDetail = DarwinNotificationDetails();
+    final notificationDetails = NotificationDetails(
       iOS: iosNotificatonDetail,
       android: androidNotificationDetail,
     );
-    flutterLocalNotificationsPlugin.show(0, title, body, notificationDetails,
-        payload: payload);
+    flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      body,
+      notificationDetails,
+    );
   }
 }

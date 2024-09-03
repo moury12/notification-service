@@ -72,12 +72,13 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            // Image.asset('assets/notification.jpg'),
             ElevatedButton(
                 onPressed: () {
                   NotificationService.showLocalNotification(
                       'title', 'body', 'payload');
                 },
-                child: Text('send notification')),
+                child: Text('send notification with image')),
             ElevatedButton(
                 onPressed: () {
                   showDialog(
@@ -115,7 +116,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               onPressed: () {
                                 NotificationService.showScheduleNotification(
                                     scheduleTime!,
-                                    int.parse(numberOfDaysController.text));
+                                    numberOfDaysController.text.isEmpty
+                                        ? null
+                                        : int.parse(
+                                            numberOfDaysController.text));
                                 Navigator.pop(context);
                               },
                               child: Text('Set notification'))
@@ -127,7 +131,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text('schedule notification')),
             ElevatedButton(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => DownloadContent(),));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DownloadContent(),
+                      ));
                 },
                 child: Text('download notification'))
           ],
@@ -144,6 +152,4 @@ class _MyHomePageState extends State<MyHomePage> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
-
 }
-
