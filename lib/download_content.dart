@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:notification_service/notification.dart';
@@ -58,10 +57,11 @@ class _DownloadContentState extends State<DownloadContent> {
               },
             ),
             ElevatedButton(
-                onPressed: () {
-                  downloadContent();
-                },
-                child: const Text('Download'))
+              onPressed: () {
+                downloadContent();
+              },
+              child: const Text('Download'),
+            )
           ],
         ),
       ),
@@ -69,35 +69,40 @@ class _DownloadContentState extends State<DownloadContent> {
   }
 
   Future<void> downloadContent() async {
-    // Get the external storage directory
     const directory = '/storage/emulated/0/Download';
-
-    // Define the full file path by appending a file name to the directory path
     String filePath = '$directory/downloaded_file.mp4';
-    debugPrint(filePath); // Specify the desired file name and extension
+
     await Dio().download(
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4',
       filePath,
       onReceiveProgress: (count, total) {
         if (total != -1) {
-          downloadController.add(count / total);
-          debugPrint('Download progress: ${((count / total) * 100).toInt()}%');
-          updateNotification(((count / total) * 100).toInt(), filePath);
+          double progress = count / total;
+          downloadController.add(progress);
+          updateNotification((progress * 100).toInt(), filePath);
         }
       },
     );
+
+    // Add a slight delay to ensure final UI and notification update.
+    await Future.delayed(Duration(milliseconds: 100));
+
+    // Ensure final UI and notification update when download is complete.
+    downloadController.add(1.0);
+    updateNotification(100, filePath);
   }
 
-  void updateNotification(int progress, String filepath) {
+  @override
+  void dispose() {
+    downloadController.close();
+    super.dispose();
+  }
+
+  void updateNotification(int progress, String filePath) {
     final now = DateTime.now();
     if (lastNotificationUpdate == null ||
         now.difference(lastNotificationUpdate!).inMilliseconds >= 100) {
-      if (progress > 100) {
-        NotificationService.showDownloadNotification(
-            100, filepath); // Final update to 100%
-      } else {
-        NotificationService.showDownloadNotification(progress, filepath);
-      }
+      NotificationService.showDownloadNotification(progress, filePath);
       lastNotificationUpdate = now;
     }
   }

@@ -1,6 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:timezone/timezone.dart' as tz;
-
 // import 'package:timezone/data/latest.dart' as tz;
 class NotificationService {
   static FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -20,6 +20,12 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
+      onDidReceiveNotificationResponse: (details) async {
+        if (details.payload != null && details.payload!.isNotEmpty) {
+await OpenFilex.open(details.payload!);
+
+        }
+      },
     );
   }
 
@@ -75,7 +81,7 @@ class NotificationService {
     }
   }
 
-static  void showDownloadNotification(int progress,String? filePath) async {
+  static void showDownloadNotification(int progress, String? filePath) async {
     AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails('downloadId', 'downloadName',
             progress: progress,
@@ -84,14 +90,16 @@ static  void showDownloadNotification(int progress,String? filePath) async {
             priority: Priority.high,
             maxProgress: 100, // Maximum progress value (100%)
             indeterminate: false,
-            onlyAlertOnce: false,
-            channelDescription:
-            'Channel for download progress notifications');
-final Uri fileUri =Uri.file(filePath!);
+            onlyAlertOnce: true,
+            channelDescription: 'Channel for download progress notifications');
+    // final Uri fileUri = Uri.file(filePath!);
     NotificationDetails notificationDetails =
         NotificationDetails(android: androidNotificationDetails);
     await flutterLocalNotificationsPlugin.show(
-        50, 'Downloading File $progress', 'Download Progress',
+        50,
+        progress < 100 ? 'Downloading File $progress%' : 'Download Complete',
+        progress < 100 ? 'Download Progress' : 'Tap to open file',
+        payload: progress < 100 ?null: filePath,
         notificationDetails);
   }
 
