@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:open_filex/open_filex.dart';
@@ -13,8 +15,41 @@ class NotificationService {
       AndroidInitializationSettings(
     '@mipmap/ic_launcher',
   );
-
   static initNotification() async {
+    if (Platform.isAndroid) {
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+
+      flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        '123', // ID
+        'Notifications', // Name
+        description: 'Notification Channel', // Description
+        importance: Importance.high,
+      );
+
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+    }
+
+    // Initialize the plugin
+    InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (details) async {
+        if (details.payload != null && details.payload!.isNotEmpty) {
+          await OpenFilex.open(details.payload!);
+        }
+      },
+    );
+  }
+
+/*  static initNotification() async {
     final InitializationSettings initializationSettings =
         InitializationSettings(
       android: initializationSettingsAndroid,
@@ -29,7 +64,7 @@ class NotificationService {
         }
       },
     );
-  }
+  }*/
 
   static Future<void> showScheduleNotification(
       DateTime scheduleTime, int? numberOfDays) async {
@@ -111,13 +146,15 @@ class NotificationService {
       String title, String body, String payload) async {
     final ByteData imageData = await rootBundle.load('assets/notification.jpg');
     final Uint8List bytes = imageData.buffer.asUint8List();
-    final androidNotificationDetail = AndroidNotificationDetails('1', 'general',
+    final androidNotificationDetail = AndroidNotificationDetails(
+        'your_channel_id', 'your_channel_name',
+        channelDescription: 'your_channel_description',
+        importance: Importance.max,
         priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
         autoCancel: true,
         fullScreenIntent: false,
-        enableVibration: true,
-        importance: Importance.high,
-        playSound: true,
         styleInformation: BigPictureStyleInformation(
             ByteArrayAndroidBitmap(bytes),
             largeIcon: ByteArrayAndroidBitmap(bytes)),
@@ -127,11 +164,7 @@ class NotificationService {
       iOS: iosNotificatonDetail,
       android: androidNotificationDetail,
     );
-    flutterLocalNotificationsPlugin.show(
-      0,
-      title,
-      body,
-      notificationDetails,
-    );
+    flutterLocalNotificationsPlugin.show(DateTime.now().millisecondsSinceEpoch ~/ 1000, title, body, notificationDetails,
+        payload: payload);
   }
 }

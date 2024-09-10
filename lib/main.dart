@@ -5,30 +5,65 @@ import 'package:flutter/material.dart';
 import 'package:notification_service/download_content.dart';
 import 'package:notification_service/notification.dart';
 import 'package:timezone/data/latest.dart' as tz;
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  tz.initializeTimeZones();
   await Firebase.initializeApp();
   NotificationService.initNotification();
-  await FirebaseMessaging.instance.getInitialMessage();
-  await FirebaseMessaging.instance.requestPermission();
-  await FirebaseMessaging.onMessageOpenedApp.listen((event) {
-    print(("THIS IS EVENT :: :: $event"));
+  // if (message.data.isNotEmpty) {
+  //   // Create custom notification
+  //   NotificationService.showLocalNotification(
+  //     message.data['title'] ?? "No Title",
+  //     message.data['body'] ?? "No Body",
+  //     message.data['payload'] ?? 'Default Payload',
+  //   );
+  // }
+// if(message.notification!=null)
+//   {
+//     NotificationService.showLocalNotification(
+//       message.notification?.title ?? "No title",
+//       message.notification?.body ?? "No body",
+//       message.data['payload'] ?? 'Default payload',
+//     );
+//   }
+}
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  // Handle background messages
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  tz.initializeTimeZones();
+  NotificationService.initNotification();
+  // Handle messages when app is in the foreground
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print('Received a message in the foreground!');
+    if (message.notification != null) {
+      NotificationService.showLocalNotification(
+        message.notification!.title ?? 'Title',
+        message.notification!.body ?? 'Body',
+        message.data['payload'] ?? '',
+      );
+    }
   });
+  // WidgetsFlutterBinding.ensureInitialized();
+  // FirebaseMessaging.onBackgroundMessage((RemoteMessage message) async {
+  //   print('Handling background message: ${message.messageId}');
+  //   await firebaseMessagingBackgroundHandler(message);
+  // });  tz.initializeTimeZones();
+  // await Firebase.initializeApp(options: FirebaseOptions(apiKey: "AIzaSyC-yxJYztZVJ9KLvRztKnaH65a1hpBLIm4",
+  //     appId:"1:1017484569656:android:c9a61343398ca906a14acd",
+  //     messagingSenderId: "1017484569656"	,
+  //     projectId: "notification-service-3bca4"));
+  // NotificationService.initNotification();
+  // await FirebaseMessaging.instance.getInitialMessage();
+  // await FirebaseMessaging.instance.requestPermission();
+  // await FirebaseMessaging.onMessageOpenedApp.listen((event) {
+  //   print(("THIS IS EVENT :: :: $event"));
+  // });
   runApp(const MyApp());
 }
 
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-
-  NotificationService.showLocalNotification(
-    message.notification?.title ?? "No title",
-    message.notification?.body ?? "No body",
-    message.data['payload'] ?? 'Default payload',
-  );
-}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
