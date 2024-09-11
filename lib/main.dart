@@ -2,12 +2,13 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:notification_service/api_service.dart';
 import 'package:notification_service/download_content.dart';
 import 'package:notification_service/notification.dart';
 import 'package:timezone/data/latest.dart' as tz;
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-
   await Firebase.initializeApp();
   NotificationService.initNotification();
   // if (message.data.isNotEmpty) {
@@ -27,6 +28,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 //     );
 //   }
 }
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -64,7 +66,6 @@ void main() async {
   runApp(const MyApp());
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -94,7 +95,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   TimeOfDay? selectedTime;
   DateTime? scheduleTime;
-
+  TextEditingController titleController = TextEditingController();
+  TextEditingController bodyController = TextEditingController();
   TextEditingController numberOfDaysController = TextEditingController();
   @override
   Widget build(BuildContext context) {
@@ -104,76 +106,95 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text('notification'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            // Image.asset('assets/notification.jpg'),
-            ElevatedButton(
-                onPressed: () {
-                  NotificationService.showLocalNotification(
-                      'title', 'body', 'payload');
-                },
-                child: Text('send notification with image')),
-            ElevatedButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: numberOfDaysController,
-                            decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Enter number of days'),
-                          ),
-                          ElevatedButton(
-                              onPressed: () async {
-                                TimeOfDay? pickedTime = await showTimePicker(
-                                    context: context,
-                                    initialTime: TimeOfDay.now());
-                                if (pickedTime != null) {
-                                  setState(() {
-                                    selectedTime = pickedTime;
-                                  });
-                                  scheduleTime = DateTime(
-                                    DateTime.now().year,
-                                    DateTime.now().month,
-                                    DateTime.now().day,
-                                    selectedTime!.hour,
-                                    selectedTime!.minute,
-                                  );
-                                }
-                              },
-                              child: Text('select time')),
-                          ElevatedButton(
-                              onPressed: () {
-                                NotificationService.showScheduleNotification(
-                                    scheduleTime!,
-                                    numberOfDaysController.text.isEmpty
-                                        ? null
-                                        : int.parse(
-                                            numberOfDaysController.text));
-                                Navigator.pop(context);
-                              },
-                              child: Text('Set notification'))
-                        ],
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              // Image.asset('assets/notification.jpg'),
+              ElevatedButton(
+                  onPressed: () {
+                    NotificationService.showLocalNotification(
+                        'title', 'body', 'payload');
+                  },
+                  child: Text('send notification with image')),
+              ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextField(
+                              controller: numberOfDaysController,
+                              decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  hintText: 'Enter number of days'),
+                            ),
+                            ElevatedButton(
+                                onPressed: () async {
+                                  TimeOfDay? pickedTime = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.now());
+                                  if (pickedTime != null) {
+                                    setState(() {
+                                      selectedTime = pickedTime;
+                                    });
+                                    scheduleTime = DateTime(
+                                      DateTime.now().year,
+                                      DateTime.now().month,
+                                      DateTime.now().day,
+                                      selectedTime!.hour,
+                                      selectedTime!.minute,
+                                    );
+                                  }
+                                },
+                                child: Text('select time')),
+                            ElevatedButton(
+                                onPressed: () {
+                                  NotificationService.showScheduleNotification(
+                                      scheduleTime!,
+                                      numberOfDaysController.text.isEmpty
+                                          ? null
+                                          : int.parse(
+                                              numberOfDaysController.text));
+                                  Navigator.pop(context);
+                                },
+                                child: Text('Set notification'))
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
-                child: Text('schedule notification')),
-            ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DownloadContent(),
-                      ));
-                },
-                child: Text('download notification'))
-          ],
+                    );
+                  },
+                  child: Text('schedule notification')),
+              ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DownloadContent(),
+                        ));
+                  },
+                  child: Text('download notification')),
+              TextField(
+                decoration: InputDecoration(hintText: "Enter title"),
+                controller: titleController,
+              ),
+              TextField(
+                decoration: InputDecoration(hintText: "Enter body"),
+                controller: bodyController,
+              ),
+              ElevatedButton(
+                  onPressed: () {
+                    FirebaseMessaging.instance.getToken().then((value) {
+                      ApiService().sentNotification(titleController.text.isEmpty?'null':titleController.text,
+                          bodyController.text.isEmpty?'null':bodyController.text, value.toString());
+                    });
+                  },
+                  child: Text('sent notification from  node js server')),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
