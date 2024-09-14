@@ -9,7 +9,7 @@ import 'package:timezone/data/latest.dart' as tz;
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp();  messaging.subscribeToTopic("general");
   NotificationService.initNotification();
   // if (message.data.isNotEmpty) {
   //   // Create custom notification
@@ -28,6 +28,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 //     );
 //   }
 }
+FirebaseMessaging messaging = FirebaseMessaging.instance;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,7 @@ void main() async {
       );
     }
   });
+  messaging.subscribeToTopic("general");
   // WidgetsFlutterBinding.ensureInitialized();
   // FirebaseMessaging.onBackgroundMessage((RemoteMessage message) async {
   //   print('Handling background message: ${message.messageId}');
